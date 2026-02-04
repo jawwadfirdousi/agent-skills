@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Use the real gh binary path if set by env.sh, otherwise find it ourselves
+# This prevents infinite recursion when gh is shadowed by a shell function
+if [[ -n "${__GH_READONLY_REAL_GH:-}" ]]; then
+  GH_BIN="$__GH_READONLY_REAL_GH"
+else
+  # Find the actual gh binary, skipping any shell functions or aliases
+  GH_BIN="$(command -v gh 2>/dev/null || true)"
+  if [[ -z "$GH_BIN" ]]; then
+    echo "gh-readonly: error: gh CLI not found in PATH" >&2
+    exit 1
+  fi
+fi
+
 deny() {
   echo "gh-readonly: blocked: $*" >&2
   exit 2
@@ -126,7 +139,7 @@ parse_global_args() {
 }
 
 run_gh() {
-  command gh "${GLOBAL_ARGS[@]}" "$@"
+  "$GH_BIN" "${GLOBAL_ARGS[@]}" "$@"
 }
 
 if [[ $# -eq 0 ]]; then
