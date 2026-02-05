@@ -1,4 +1,0 @@
-interface:
-  display_name: "PR Review (GitHub CLI)"
-  short_description: "Review pull requests with GitHub CLI"
-  default_prompt: "Use $pr-review-gh-cli for a strict read-only PR review and report findings in chat only."
