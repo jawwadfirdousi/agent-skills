@@ -1,0 +1,19 @@
+name: pr-review-gh-cli read-only wrapper
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show gh version
+        run: gh --version
+
+      - name: Run read-only wrapper tests
+        run: bash skills/pr-review-gh-cli/scripts/test-readonly.sh
