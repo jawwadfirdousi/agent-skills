@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Use the real gh binary path if set by env.sh, otherwise find it ourselves
+# Use the real gh binary path if set by activate-gh-readonly.sh, otherwise find it ourselves
 # This prevents infinite recursion when gh is shadowed by a shell function
 if [[ -n "${__GH_READONLY_REAL_GH:-}" ]]; then
   GH_BIN="$__GH_READONLY_REAL_GH"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Source this file to enable read-only gh enforcement.
-# Usage: source /path/to/env.sh
+# Usage: source /path/to/activate-gh-readonly.sh
 #
 # After sourcing, all `gh` calls in the current shell session are intercepted
 # and filtered through the read-only wrapper. Direct gh binary access is blocked.
@@ -55,18 +55,54 @@ command() {
       shift
       gh "$@"
       ;;
+    env)
+      # `command env gh ...` is a common bypass attempt; route through our env wrapper
+      shift
+      env "$@"
+      ;;
+    --)
+      # `command -- <cmd>` can be used to bypass simple case matching; intercept gh/env
+      shift
+      case "${1:-}" in
+        gh)
+          shift
+          gh "$@"
+          ;;
+        env)
+          shift
+          env "$@"
+          ;;
+        *)
+          builtin command -- "$@"
+          ;;
+      esac
+      ;;
     -v)
-      if [[ "${2:-}" == "gh" ]]; then
+      if [[ "${2:-}" == "gh" || ( "${2:-}" == "--" && "${3:-}" == "gh" ) ]]; then
         echo "gh (read-only wrapper)"
+        return 0
+      fi
+      if [[ "${2:-}" == "env" || ( "${2:-}" == "--" && "${3:-}" == "env" ) ]]; then
+        echo "env (read-only wrapper)"
         return 0
       fi
       builtin command "$@"
       ;;
     -p)
-      # `command -p gh` uses default PATH - intercept it
-      if [[ "${2:-}" == "gh" ]]; then
+      # `command -p` uses the default PATH - intercept gh/env to prevent bypass
+      if [[ "${2:-}" == "--" && "${3:-}" == "gh" ]]; then
+        shift 3
+        gh "$@"
+      elif [[ "${2:-}" == "--" && "${3:-}" == "env" ]]; then
+        shift 3
+        env "$@"
+      elif [[ "${2:-}" == "gh" ]]; then
         shift 2
         gh "$@"
+      elif [[ "${2:-}" == "env" ]]; then
+        # `command -p env gh ...` is a bypass attempt; route through our env wrapper
+        shift 2
+        env "$@"
       else
         builtin command "$@"
       fi

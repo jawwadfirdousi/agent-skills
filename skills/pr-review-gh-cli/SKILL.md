@@ -15,7 +15,7 @@ Review backend pull requests end-to-end using local code analysis and GitHub CLI
 - Use only: `SemanticSearch`, `WebSearch`, `Grep`, `LS`, `Glob`, `Read`, `Shell`, `GitHub CLI`.
 - **Before any `gh` command**, source the read-only environment script to enable security enforcement:
   ```bash
-  source "<SKILL_DIR>/scripts/env.sh"
+  source "<SKILL_DIR>/scripts/activate-gh-readonly.sh"
   ```
   Replace `<SKILL_DIR>` with the absolute path to this skill directory.
 - After sourcing, use `gh` commands directly—they are intercepted by the read-only wrapper.
@@ -28,7 +28,7 @@ Review backend pull requests end-to-end using local code analysis and GitHub CLI
 ## Workflow
 
 1. Enable read-only environment.
-   - Source the environment script: `source "<SKILL_DIR>/scripts/env.sh"`
+   - Source the environment script: `source "<SKILL_DIR>/scripts/activate-gh-readonly.sh"`
    - All subsequent `gh` commands in this shell session are now protected.
 2. Prepare review context.
    - Confirm identity and auth: `gh auth status`, `gh api user`.

@@ -10,6 +10,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_SCRIPT="$SCRIPT_DIR/activate-gh-readonly.sh"
 PASS=0
 FAIL=0
 
@@ -47,7 +48,7 @@ run_blocked_test() {
   local cmd="$*"
   
   local output exit_code=0
-  output=$(bash -c "source '$SCRIPT_DIR/env.sh' 2>/dev/null && $cmd" 2>&1) || exit_code=$?
+  output=$(bash -c "source '$ENV_SCRIPT' 2>/dev/null && $cmd" 2>&1) || exit_code=$?
   
   if [[ $exit_code -eq 2 ]] && echo "$output" | grep -q "gh-readonly: blocked"; then
     pass "$name"
@@ -64,7 +65,7 @@ run_allowed_test() {
   local cmd="$*"
   
   local output exit_code=0
-  output=$(bash -c "source '$SCRIPT_DIR/env.sh' 2>/dev/null && $cmd" 2>&1) || exit_code=$?
+  output=$(bash -c "source '$ENV_SCRIPT' 2>/dev/null && $cmd" 2>&1) || exit_code=$?
   
   # Wrapper blocks with exit 2; any other exit means wrapper allowed it
   if [[ $exit_code -ne 2 ]] && ! echo "$output" | grep -q "gh-readonly: blocked"; then
@@ -83,30 +84,36 @@ echo
 info "Testing BLOCKED commands (must exit 2 with 'blocked' message)..."
 echo
 
-run_blocked_test "gh pr create" "gh pr create --title test --body test"
-run_blocked_test "gh pr merge" "gh pr merge 1"
-run_blocked_test "gh pr close" "gh pr close 1"
-run_blocked_test "gh pr comment" "gh pr comment 1 --body test"
-run_blocked_test "gh pr edit" "gh pr edit 1 --title test"
-run_blocked_test "gh pr review" "gh pr review 1 --approve"
-run_blocked_test "gh issue create" "gh issue create --title test --body test"
-run_blocked_test "gh issue close" "gh issue close 1"
-run_blocked_test "gh auth login" "gh auth login"
-run_blocked_test "gh repo create" "gh repo create test"
-run_blocked_test "gh api POST" "gh api -X POST /repos/test/test/issues"
-run_blocked_test "gh api DELETE" "gh api -X DELETE /repos/test/test/issues/1"
-run_blocked_test "gh api PATCH" "gh api -X PATCH /repos/test/test/issues/1"
-run_blocked_test "gh api with -f body" "gh api /repos/test/test/issues -f title=test"
-run_blocked_test "gh api with -F body" "gh api /repos/test/test/issues -F title=test"
+run_blocked_test "gh pr create" "gh pr create --help"
+run_blocked_test "gh pr merge" "gh pr merge --help"
+run_blocked_test "gh pr close" "gh pr close --help"
+run_blocked_test "gh pr comment" "gh pr comment --help"
+run_blocked_test "gh pr edit" "gh pr edit --help"
+run_blocked_test "gh pr review" "gh pr review --help"
+run_blocked_test "gh issue create" "gh issue create --help"
+run_blocked_test "gh issue close" "gh issue close --help"
+run_blocked_test "gh auth login" "gh auth login --help"
+run_blocked_test "gh repo create" "gh repo create --help"
+run_blocked_test "gh api POST" "gh api -X POST user"
+run_blocked_test "gh api DELETE" "gh api -X DELETE user"
+run_blocked_test "gh api PATCH" "gh api -X PATCH user"
+run_blocked_test "gh api with -f body" "gh api user -f title=test"
+run_blocked_test "gh api with -F body" "gh api user -F title=test"
 run_blocked_test "gh api disallowed endpoint" "gh api /repos/test/test/labels"
 
 echo
 info "Testing BYPASS attempts (must be intercepted)..."
 echo
 
-run_blocked_test "command gh pr merge" "command gh pr merge 1"
-run_blocked_test "command -p gh pr merge" "command -p gh pr merge 1"
-run_blocked_test "env gh" "env gh pr list"
+run_blocked_test "command gh pr merge" "command gh pr merge --help"
+run_blocked_test "command -p gh pr merge" "command -p gh pr merge --help"
+run_blocked_test "command env gh" "command env gh pr merge --help"
+run_blocked_test "command -p env gh" "command -p env gh pr merge --help"
+run_blocked_test "command -- gh" "command -- gh pr merge --help"
+run_blocked_test "command -- env gh" "command -- env gh pr merge --help"
+run_blocked_test "command -p -- gh" "command -p -- gh pr merge --help"
+run_blocked_test "command -p -- env gh" "command -p -- env gh pr merge --help"
+run_blocked_test "env gh" "env gh pr merge --help"
 
 echo
 info "Testing ALLOWED commands (wrapper must not block)..."
@@ -125,7 +132,7 @@ echo
 info "Testing status function..."
 echo
 
-output=$(bash -c "source '$SCRIPT_DIR/env.sh' 2>/dev/null && gh-readonly-status" 2>&1)
+output=$(bash -c "source '$ENV_SCRIPT' 2>/dev/null && gh-readonly-status" 2>&1)
 if echo "$output" | grep -q "ACTIVE"; then
   pass "gh-readonly-status shows ACTIVE"
 else
