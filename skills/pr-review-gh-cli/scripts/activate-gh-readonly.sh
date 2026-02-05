@@ -116,6 +116,7 @@ export -f command
 
 # Shadow `env` to block `env gh` bypass
 __gh_readonly_original_env="$(builtin command -v env 2>/dev/null)"
+export __gh_readonly_original_env
 env() {
   local args=("$@")
   local i

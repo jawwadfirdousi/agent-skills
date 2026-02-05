@@ -76,6 +76,24 @@ run_allowed_test() {
   fi
 }
 
+# Test that a command succeeds (exit 0) and matches expected output.
+run_success_test() {
+  local name="$1"
+  local expected_regex="$2"
+  shift 2
+  local cmd="$*"
+
+  local output exit_code=0
+  output=$(bash -c "source '$ENV_SCRIPT' >/dev/null 2>&1 && $cmd" 2>&1) || exit_code=$?
+
+  if [[ $exit_code -eq 0 ]] && echo "$output" | grep -Eq "$expected_regex"; then
+    pass "$name"
+  else
+    fail "$name (exit=$exit_code, expected exit=0 and output /$expected_regex/)"
+    echo "      Output: $output"
+  fi
+}
+
 echo "========================================"
 echo "Testing gh-readonly enforcement"
 echo "========================================"
@@ -127,6 +145,13 @@ run_allowed_test "gh issue view --help" "gh issue view --help"
 run_allowed_test "gh search code --help" "gh search code --help"
 run_allowed_test "gh search issues --help" "gh search issues --help"
 run_allowed_test "gh auth status" "gh auth status || true"  # may fail if not authed
+
+echo
+info "Testing SUBSHELL inheritance (exported functions and vars)..."
+echo
+
+run_blocked_test "subshell gh pr merge" "bash -lc 'gh pr merge --help'"
+run_success_test "subshell env works" "^hi$" "bash -lc 'env echo hi'"
 
 echo
 info "Testing status function..."
