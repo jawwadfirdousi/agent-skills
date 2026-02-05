@@ -1,4 +1,4 @@
-name: pr-review-gh-cli read-only wrapper
+name: read-only-gh-pr-review wrapper
 
 on:
   pull_request:
@@ -16,4 +16,4 @@ jobs:
         run: gh --version
 
       - name: Run read-only wrapper tests
-        run: bash skills/pr-review-gh-cli/scripts/test-readonly.sh
+        run: bash skills/read-only-gh-pr-review/scripts/test-readonly.sh

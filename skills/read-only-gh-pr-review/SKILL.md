@@ -1,5 +1,5 @@
 ---
-name: pr-review-gh-cli
+name: read-only-gh-pr-review
 description: Review backend pull requests for correctness, security, performance, maintainability, and test coverage using GitHub CLI plus local repository inspection. Use when asked to review service-layer/API/database changes, audit backend branch diffs, summarize backend risk, or produce actionable must-fix/should-fix feedback.
 compatibility: Requires GitHub CLI (gh), an authenticated GitHub account, and network access.
 ---
