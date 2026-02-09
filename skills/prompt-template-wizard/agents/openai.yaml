@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prompt Template Wizard"
+  short_description: "Build complete feature/bugfix prompt templates"
+  default_prompt: "Use $prompt-template-wizard to turn incomplete requests into complete prompt templates."
