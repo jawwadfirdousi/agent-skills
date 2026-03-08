@@ -271,10 +271,9 @@ INPUTS
 REQUEST
 Execute in this order:
 1) Plan (3–8 bullets)
-2) Implementation (include exact file paths and a unified diff if code changes)
-3) Tests (what you changed/added or why skipped; include test-impact note)
-4) Verification checklist (manual + automated)
-5) Assumptions
+2) Tests (what you changed/added or why skipped; include test-impact note)
+3) Verification checklist (manual + automated)
+4) Assumptions
 
 Apply scope discipline: implement exactly and only the IN scope.
 Assumption policy: ask only if blocked.
