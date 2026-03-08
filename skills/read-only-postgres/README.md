@@ -76,6 +76,35 @@ python3 scripts/query.py --db prod --query "SELECT * FROM users" --limit 100
 | user | Yes | - | Username |
 | password | Yes | - | Password |
 | sslmode | No | prefer | disable, allow, prefer, require, verify-ca, verify-full |
+| pii_masking | No | - | Map of table names to column arrays to mask (see below) |
+
+## PII Masking
+
+Protect sensitive data by masking column values in query output. Add a `pii_masking` field to any database config:
+
+```json
+{
+  "name": "prod",
+  "host": "db.example.com",
+  "database": "app_prod",
+  "user": "readonly",
+  "password": "secret",
+  "pii_masking": {
+    "users": ["email", "phone", "first_name", "last_name"],
+    "orders": ["shipping_address"]
+  }
+}
+```
+
+Middle characters are replaced with `*`, keeping the first and last characters:
+
+| Original | Masked |
+|----------|--------|
+| john@email.com | j\*\*\*\*\*\*\*\*\*\*\*\*m |
+| 555-1234 | 5\*\*\*\*\*\*4 |
+| Jo | Jo |
+
+Masking applies automatically when the query targets a configured table. Masked columns are noted in the output footer.
 
 ## Safety Features
 
@@ -85,6 +114,7 @@ python3 scripts/query.py --db prod --query "SELECT * FROM users" --limit 100
 - **Timeouts**: 30s query timeout, 10s connection timeout
 - **Memory cap**: Max 10,000 rows per query
 - **Credential protection**: Passwords sanitized from error messages
+- **PII masking**: Configurable per-table column masking hides sensitive data in output
 
 ## Requirements
 
