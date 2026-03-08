@@ -60,6 +60,32 @@ chmod 600 connections.json
 | user | Yes | Username |
 | password | Yes | Password |
 | sslmode | No | SSL mode: disable, allow, prefer (default), require, verify-ca, verify-full |
+| pii_masking | No | Object mapping table names to arrays of column names to mask |
+
+### PII Masking
+
+Mask sensitive data in query results by adding a `pii_masking` field to any database config. Middle characters are replaced with `*`, keeping only the first and last characters visible.
+
+```json
+{
+  "name": "app-db-dev",
+  "host": "localhost",
+  "database": "app_dev",
+  "user": "readonly",
+  "password": "secret",
+  "pii_masking": {
+    "users": ["email", "phone", "first_name", "last_name"],
+    "orders": ["shipping_address"]
+  }
+}
+```
+
+**How it works:**
+- `john@email.com` → `j************m`
+- `555-1234` → `5******4`
+- `Jo` → `Jo` (2 chars or fewer are not masked)
+
+Masking is applied automatically when querying a matching table. A footer note indicates which columns were masked.
 
 ## Usage
 
@@ -113,6 +139,7 @@ If unclear, run `--list` and ask user which database.
 - **Memory protection**: Max 10,000 rows per query to prevent OOM
 - **Column width cap**: 100 char max per column for readable output
 - **Credential sanitization**: Error messages don't leak passwords
+- **PII masking**: Configurable per-table column masking to protect sensitive data in query output
 
 ## Troubleshooting
 

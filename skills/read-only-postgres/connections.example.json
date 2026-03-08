@@ -8,7 +8,11 @@
       "database": "app_dev",
       "user": "app_user",
       "password": "app_password",
-      "sslmode": "disable"
+      "sslmode": "disable",
+      "pii_masking": {
+        "users": ["email", "phone", "first_name", "last_name"],
+        "orders": ["shipping_address"]
+      }
     }
   ]
 }

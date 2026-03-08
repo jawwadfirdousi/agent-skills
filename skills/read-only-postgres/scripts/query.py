@@ -201,6 +201,50 @@ def validate_single_statement(query: str) -> bool:
     return ';' not in clean
 
 
+def mask_value(value: str) -> str:
+    """Mask middle characters of a string, keeping first and last visible.
+
+    Examples:
+        'john@email.com' -> 'j************om'
+        'abc'            -> 'a*c'
+        'ab'             -> 'ab'  (too short to mask)
+        'a'              -> 'a'   (too short to mask)
+    """
+    if len(value) <= 2:
+        return value
+    return value[0] + "*" * (len(value) - 2) + value[-1]
+
+
+def build_pii_columns(db_config: dict) -> dict[str, set[str]]:
+    """Build a lookup of {table_name: {col1, col2, ...}} from pii_masking config.
+
+    Column names are lowercased for case-insensitive matching.
+    """
+    masking = db_config.get("pii_masking", {})
+    return {
+        table.lower(): {col.lower() for col in cols}
+        for table, cols in masking.items()
+    }
+
+
+def detect_tables_from_query(query: str) -> list[str]:
+    """Extract all table names from a query (FROM, JOIN, and comma-joins).
+
+    Handles: FROM table, FROM schema.table, FROM "table",
+             JOIN table, LEFT JOIN table, INNER JOIN table, etc.
+    Returns list of lowercase table names (may be empty).
+    """
+    # Match FROM/JOIN <table> (handles optional schema prefix and quoting)
+    table_pattern = re.compile(
+        r'(?:\bFROM\b|\bJOIN\b)\s+(?:"?(\w+)"?\.)?"?(\w+)"?',
+        re.IGNORECASE,
+    )
+    tables = []
+    for match in table_pattern.finditer(query):
+        tables.append(match.group(2).lower())
+    return tables
+
+
 def validate_config_permissions(path: Path) -> None:
     """Warn if config file has insecure permissions (Unix only)."""
     if os.name != 'nt':  # Skip on Windows
@@ -299,6 +343,13 @@ def execute_query(db_config: dict, query: str, limit: Optional[int] = None) -> N
         # Primary safety: readonly session prevents any write operations
         conn.set_session(readonly=True, autocommit=True)
 
+        # Determine which columns need PII masking (merge from all tables in query)
+        pii_columns = build_pii_columns(db_config)
+        query_tables = detect_tables_from_query(query)
+        masked_table_cols: set[str] = set()
+        for tbl in query_tables:
+            masked_table_cols |= pii_columns.get(tbl, set())
+
         with conn.cursor() as cur:
             cur.execute(query)
             if cur.description:
@@ -306,11 +357,25 @@ def execute_query(db_config: dict, query: str, limit: Optional[int] = None) -> N
                 rows = cur.fetchmany(MAX_ROWS)
                 truncated = len(rows) == MAX_ROWS
 
+                # Build set of column indices that need masking
+                mask_indices = set()
+                for i, col in enumerate(columns):
+                    if col.lower() in masked_table_cols:
+                        mask_indices.add(i)
+
+                def format_cell(val, col_index: int) -> str:
+                    if val is None:
+                        return NULL_DISPLAY
+                    val_str = str(val)
+                    if col_index in mask_indices:
+                        val_str = mask_value(val_str)
+                    return val_str
+
                 # Calculate column widths with cap
                 widths = [min(len(col), MAX_COLUMN_WIDTH) for col in columns]
                 for row in rows:
                     for i, val in enumerate(row):
-                        val_str = str(val) if val is not None else NULL_DISPLAY
+                        val_str = format_cell(val, i)
                         widths[i] = min(max(widths[i], len(val_str)), MAX_COLUMN_WIDTH)
 
                 # Print header
@@ -322,7 +387,7 @@ def execute_query(db_config: dict, query: str, limit: Optional[int] = None) -> N
                 for row in rows:
                     cells = []
                     for i, val in enumerate(row):
-                        val_str = str(val) if val is not None else NULL_DISPLAY
+                        val_str = format_cell(val, i)
                         if len(val_str) > MAX_COLUMN_WIDTH:
                             val_str = val_str[:MAX_COLUMN_WIDTH-3] + "..."
                         cells.append(val_str.ljust(widths[i]))
@@ -331,6 +396,9 @@ def execute_query(db_config: dict, query: str, limit: Optional[int] = None) -> N
                 msg = f"\n({len(rows)} rows)"
                 if truncated:
                     msg += f" [truncated at {MAX_ROWS}]"
+                if mask_indices:
+                    masked_names = [columns[i] for i in sorted(mask_indices)]
+                    msg += f" [PII masked: {', '.join(masked_names)}]"
                 print(msg)
             else:
                 print("Query executed (no result set returned)")
