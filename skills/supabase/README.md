@@ -16,40 +16,69 @@ Because it uses management API access, treat it like admin-level database access
 
 ## Setup
 
-You can either export credentials directly or provide them through a repo-level env file.
+You can either export credentials directly or provide them through env files.
+
+Preferred pattern:
+
+- Store env files in `skills/supabase/env`
+- Use `<project>-<env>.env` names, for example:
+  - `skills/supabase/env/my-project-dev.env`
+  - `skills/supabase/env/my-project-prod.env`
+
+Env file format (required variable names):
+
+```bash
+SUPABASE_URL="https://your-project-ref.supabase.co"
+SUPABASE_ACCESS_TOKEN="sbp_your_management_api_token"
+```
 
 Example env file:
 
 ```bash
-cp skills/supabase/.env.supabase.example .env.supabase.admin
+mkdir -p skills/supabase/env
+cat > skills/supabase/env/my-project-dev.env <<'EOF'
+SUPABASE_URL="https://your-project-ref.supabase.co"
+SUPABASE_ACCESS_TOKEN="sbp_your_management_api_token"
+EOF
+cp skills/supabase/env/my-project-dev.env skills/supabase/env/my-project-prod.env
 ```
 
-Then set:
+If your file is not inside `skills/supabase/env/<project>-<env>.env` (for example `skills/supabase/my-project-dev.env`), use `--env-file`:
 
 ```bash
-SUPABASE_URL="https://your-project-ref.supabase.co"
-SUPABASE_ACCESS_TOKEN="sbp_your_access_token"
+skills/supabase/scripts/supabase.sh sql --env-file skills/supabase/my-project-dev.env "SELECT 1"
 ```
 
-The script will auto-load, in order:
+Env resolution order:
 
-- Explicit `SUPABASE_ENV_FILE`
-- `SUPABASE_ENV` as `.env.supabase.<name>`
-- `.env.supabase.admin`
-- `.env.supabase`
+1. `--env-file <path>` loads that explicit file.
+2. `--project <project> --env <name>` loads `skills/supabase/env/<project>-<name>.env`.
+3. If `skills/supabase/env` contains exactly one `.env` file, that file is auto-loaded.
+4. If `skills/supabase/env` contains multiple `.env` files, you must pass `--project` + `--env`, or `--env-file`.
+5. If `skills/supabase/env` contains no `.env` files, the script falls back to legacy env discovery:
+   - Explicit `SUPABASE_ENV_FILE`
+   - `SUPABASE_ENV` as `.env.supabase.<name>`
+   - `.env.supabase.admin`
+   - `.env.supabase`
 
 ## How To Use It
 
 Run raw SQL:
 
 ```bash
+# Works without --project/--env only when skills/supabase/env has exactly one .env file
 skills/supabase/scripts/supabase.sh sql "SELECT * FROM users LIMIT 5"
+skills/supabase/scripts/supabase.sh sql --project my-project --env dev "SELECT * FROM users LIMIT 5"
+skills/supabase/scripts/supabase.sh sql --project my-project --env prod "SELECT * FROM users LIMIT 5"
+skills/supabase/scripts/supabase.sh sql --env-file skills/supabase/env/my-project-dev.env "SELECT COUNT(*) FROM users"
 ```
 
 Run SQL from a file:
 
 ```bash
 skills/supabase/scripts/supabase.sh sql-file ./migrations/001_init.sql
+skills/supabase/scripts/supabase.sh sql-file --project my-project --env dev ./migrations/001_init.sql
+skills/supabase/scripts/supabase.sh sql-file --env-file skills/supabase/env/my-project-prod.env ./migrations/001_init.sql
 ```
 
 ## Common Uses
