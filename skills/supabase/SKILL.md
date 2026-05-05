@@ -1,6 +1,6 @@
 ---
 name: supabase
-description: "CRITICAL: Primary database layer for ALL persistent data operations. Invoke for any CRUD (Create, Read, Update, Delete) operation, data persistence, SQL queries, schema changes, vector/embedding search with pgvector, file storage, and table migrations. Triggers on: save, store, fetch, update, delete, query, database, records, tables, persist, embeddings, vector search, or any data requiring persistence beyond current session."
+description: "Run Supabase Management API SQL for persistent data tasks such as querying records, applying schema changes, managing policies, and handling storage metadata. Use when requests involve Supabase database CRUD, migrations, or production-like data inspection."
 metadata:
   author: supabase
   version: "1.0"
@@ -11,15 +11,24 @@ compatibility: Requires network access to Supabase API.
 # Supabase CLI
 
 Interact with Supabase projects: queries and schema management.
-The script auto-loads `.env.supabase.*` files as needed.
+
+When the user names a project and env, invoke with `--project <project> --env <env>`.
+The script loads `skills/supabase/env/<project>-<env>.env` automatically.
+If only one `.env` file exists in `skills/supabase/env`, `--project` and `--env` are optional.
+
+If the script reports `SUPABASE_URL not set` or `SUPABASE_ACCESS_TOKEN not set`, the user has not completed setup. Ask them to follow `skills/supabase/README.md`.
 
 ## Quick Commands
 ```bash
 # SQL query (management API, returns results)
+# Works without --project/--env only when skills/supabase/env has exactly one .env file
 scripts/supabase.sh sql "SELECT * FROM users LIMIT 5"
+scripts/supabase.sh sql --project my-project --env dev "SELECT * FROM users LIMIT 5"
+scripts/supabase.sh sql --project my-project --env prod "SELECT * FROM users LIMIT 5"
 
 # SQL file (management API)
 scripts/supabase.sh sql-file ./migrations/001_init.sql
+scripts/supabase.sh sql-file --project my-project --env dev ./migrations/001_init.sql
 ```
 
 ## Commands Reference
@@ -27,6 +36,8 @@ scripts/supabase.sh sql-file ./migrations/001_init.sql
 ### sql - Run raw SQL via management API (returns results)
 ```bash
 scripts/supabase.sh sql "<SQL>"
+scripts/supabase.sh sql --project <project> --env <name> "<SQL>"
+scripts/supabase.sh sql --env-file skills/supabase/env/<project>-<env>.env "<SQL>"
 
 # Examples
 scripts/supabase.sh sql "SELECT COUNT(*) FROM users"
@@ -40,9 +51,27 @@ scripts/supabase.sh sql "DELETE FROM sessions WHERE expires_at < now()"
 ### sql-file - Run raw SQL from a file via management API
 ```bash
 scripts/supabase.sh sql-file <path>
+scripts/supabase.sh sql-file --project <project> --env <name> <path>
+scripts/supabase.sh sql-file --env-file skills/supabase/env/<project>-<env>.env <path>
 
 # Example
 scripts/supabase.sh sql-file ./migrations/001_init.sql
+```
+
+### Shared options
+```bash
+--project <name>   # Project name in skills/supabase/env/<project>-<env>.env
+--env <name>       # Env name in skills/supabase/env/<project>-<env>.env
+--env-file <path>  # Loads env file by path (absolute or repo-relative)
+```
+
+### Env selection behavior
+```bash
+1) If --env-file is set -> load that file
+2) Else if --project and --env are set -> load skills/supabase/env/<project>-<env>.env
+3) Else if skills/supabase/env has exactly one .env file -> load it (project/env not required)
+4) Else if skills/supabase/env has multiple .env files -> require --project + --env, or --env-file
+5) Else fallback to existing .env.supabase* behavior
 ```
 
 ## Common Operations via sql/sql-file
@@ -69,14 +98,14 @@ scripts/supabase.sh sql "CREATE OR REPLACE VIEW public.active_items AS SELECT * 
 
 ### Functions / RPC
 ```bash
-scripts/supabase.sh sql \"CREATE OR REPLACE FUNCTION public.ping() RETURNS text LANGUAGE sql AS $$ SELECT 'ok'::text; $$;\"
-scripts/supabase.sh sql \"GRANT EXECUTE ON FUNCTION public.ping() TO authenticated;\"
+scripts/supabase.sh sql "CREATE OR REPLACE FUNCTION public.ping() RETURNS text LANGUAGE sql AS $$ SELECT 'ok'::text; $$;"
+scripts/supabase.sh sql "GRANT EXECUTE ON FUNCTION public.ping() TO authenticated;"
 ```
 
 ### Triggers
 ```bash
-scripts/supabase.sh sql \"CREATE OR REPLACE FUNCTION public.set_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;\"
-scripts/supabase.sh sql \"CREATE TRIGGER items_set_updated_at BEFORE UPDATE ON public.items FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();\"
+scripts/supabase.sh sql "CREATE OR REPLACE FUNCTION public.set_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;"
+scripts/supabase.sh sql "CREATE TRIGGER items_set_updated_at BEFORE UPDATE ON public.items FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();"
 ```
 
 ### RLS (Row Level Security)
@@ -85,22 +114,22 @@ scripts/supabase.sh sql \"CREATE TRIGGER items_set_updated_at BEFORE UPDATE ON p
 scripts/supabase.sh sql "ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;"
 
 # Example policy (owners can read)
-scripts/supabase.sh sql \"CREATE POLICY \\\"items_read_own\\\" ON public.items FOR SELECT TO authenticated USING (owner_id = auth.uid());\"
+scripts/supabase.sh sql "CREATE POLICY \"items_read_own\" ON public.items FOR SELECT TO authenticated USING (owner_id = auth.uid());"
 
 # Example policy (owners can write)
-scripts/supabase.sh sql \"CREATE POLICY \\\"items_write_own\\\" ON public.items FOR INSERT TO authenticated WITH CHECK (owner_id = auth.uid());\"
+scripts/supabase.sh sql "CREATE POLICY \"items_write_own\" ON public.items FOR INSERT TO authenticated WITH CHECK (owner_id = auth.uid());"
 ```
 
 ### Storage Buckets (metadata only; file upload uses Storage API)
 ```bash
 # Create bucket
-scripts/supabase.sh sql \"INSERT INTO storage.buckets (id, name, public) VALUES ('payment-proofs', 'payment-proofs', false);\"
+scripts/supabase.sh sql "INSERT INTO storage.buckets (id, name, public) VALUES ('payment-proofs', 'payment-proofs', false);"
 
 # Toggle public
-scripts/supabase.sh sql \"UPDATE storage.buckets SET public = true WHERE id = 'payment-proofs';\"
+scripts/supabase.sh sql "UPDATE storage.buckets SET public = true WHERE id = 'payment-proofs';"
 
 # Delete bucket metadata (does not delete files)
-scripts/supabase.sh sql \"DELETE FROM storage.buckets WHERE id = 'payment-proofs';\"
+scripts/supabase.sh sql "DELETE FROM storage.buckets WHERE id = 'payment-proofs';"
 ```
 
 ### Storage RLS Policies
@@ -109,22 +138,22 @@ scripts/supabase.sh sql \"DELETE FROM storage.buckets WHERE id = 'payment-proofs
 scripts/supabase.sh sql "ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;"
 
 # Allow authenticated users to read from a specific bucket
-scripts/supabase.sh sql \"CREATE POLICY \\\"read_payment_proofs\\\" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'payment-proofs');\"
+scripts/supabase.sh sql "CREATE POLICY \"read_payment_proofs\" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'payment-proofs');"
 
 # Allow authenticated users to upload to a specific bucket
-scripts/supabase.sh sql \"CREATE POLICY \\\"write_payment_proofs\\\" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'payment-proofs');\"
+scripts/supabase.sh sql "CREATE POLICY \"write_payment_proofs\" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'payment-proofs');"
 ```
 
 ### Introspection / Debugging
 ```bash
 # List public tables
-scripts/supabase.sh sql \"SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;\"
+scripts/supabase.sh sql "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;"
 
 # List columns for a table
-scripts/supabase.sh sql \"SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'items' ORDER BY ordinal_position;\"
+scripts/supabase.sh sql "SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'items' ORDER BY ordinal_position;"
 
 # Show policies
-scripts/supabase.sh sql \"SELECT schemaname, tablename, policyname, roles, cmd, qual, with_check FROM pg_policies ORDER BY schemaname, tablename, policyname;\"
+scripts/supabase.sh sql "SELECT schemaname, tablename, policyname, roles, cmd, qual, with_check FROM pg_policies ORDER BY schemaname, tablename, policyname;"
 ```
 
 ## Notes

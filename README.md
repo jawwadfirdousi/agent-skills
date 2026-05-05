@@ -9,7 +9,7 @@ Reusable skill definitions.
 - `prompt-template-wizard`: Turn incomplete feature and bug requests into complete, paste-ready prompt templates.
 - `read-only-gh-pr-review`: Review backend pull requests with GitHub CLI and local inspection in strict read-only mode.
 - `read-only-postgres`: Run safe, read-only PostgreSQL queries against configured databases.
-- `supabase`: Use Supabase for CRUD, SQL, migrations, storage, and vector search workflows.
+- `supabase`: Supabase Management API skill for CRUD, SQL, migrations, storage, and vector search across multiple projects/environments (for example `skills/supabase/env/<project>-<env>.env`); runs with project-level admin rights.
 
 This list reflects the skill definitions currently tracked in git under `skills/`.
 
