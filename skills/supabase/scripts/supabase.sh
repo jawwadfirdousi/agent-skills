@@ -151,11 +151,13 @@ ensure_env() {
 
     if [[ -z "${SUPABASE_URL:-}" ]]; then
         echo "Error: SUPABASE_URL not set" >&2
+        echo "Hint: cp skills/supabase/env/example.env.template skills/supabase/env/<project>-<env>.env and fill in values." >&2
         exit 1
     fi
 
     if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
         echo "Error: SUPABASE_ACCESS_TOKEN not set (required for management SQL)" >&2
+        echo "Hint: cp skills/supabase/env/example.env.template skills/supabase/env/<project>-<env>.env and fill in values." >&2
         exit 1
     fi
 }
@@ -188,10 +190,13 @@ Options:
   --env <name>         Environment name for skills/supabase/env/<project>-<env>.env
   --env-file <path>    Load env file by path (absolute or repo-relative)
 
+Setup:
+  cp skills/supabase/env/example.env.template skills/supabase/env/<project>-<env>.env
+  # then fill in SUPABASE_URL and SUPABASE_ACCESS_TOKEN
+
 Examples:
   supabase.sh sql --project my-project --env dev "SELECT * FROM users LIMIT 5"
   supabase.sh sql --project my-project --env prod "SELECT * FROM users LIMIT 5"
-  supabase.sh sql --env-file skills/supabase/env/my-project-staging.env "SELECT COUNT(*) FROM users"
   supabase.sh sql-file --project my-project --env dev ./migrations/001_init.sql
 USAGE
 }

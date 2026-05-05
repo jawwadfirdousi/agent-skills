@@ -11,12 +11,12 @@ compatibility: Requires network access to Supabase API.
 # Supabase CLI
 
 Interact with Supabase projects: queries and schema management.
-Primary env source is `skills/supabase/env`.
 
-When users provide project + env, load:
-`skills/supabase/env/<project>-<env>.env`
+When the user names a project and env, invoke with `--project <project> --env <env>`.
+The script loads `skills/supabase/env/<project>-<env>.env` automatically.
+If only one `.env` file exists in `skills/supabase/env`, `--project` and `--env` are optional.
 
-If `skills/supabase/env` contains exactly one `.env` file, `--project` and `--env` are optional.
+If the script reports `SUPABASE_URL not set` or `SUPABASE_ACCESS_TOKEN not set`, the user has not completed setup. Ask them to follow `skills/supabase/README.md`.
 
 ## Quick Commands
 ```bash
@@ -25,7 +25,6 @@ If `skills/supabase/env` contains exactly one `.env` file, `--project` and `--en
 scripts/supabase.sh sql "SELECT * FROM users LIMIT 5"
 scripts/supabase.sh sql --project my-project --env dev "SELECT * FROM users LIMIT 5"
 scripts/supabase.sh sql --project my-project --env prod "SELECT * FROM users LIMIT 5"
-scripts/supabase.sh sql --env-file skills/supabase/env/my-project-dev.env "SELECT COUNT(*) FROM users"
 
 # SQL file (management API)
 scripts/supabase.sh sql-file ./migrations/001_init.sql
@@ -38,7 +37,7 @@ scripts/supabase.sh sql-file --project my-project --env dev ./migrations/001_ini
 ```bash
 scripts/supabase.sh sql "<SQL>"
 scripts/supabase.sh sql --project <project> --env <name> "<SQL>"
-scripts/supabase.sh sql --env-file <path> "<SQL>"
+scripts/supabase.sh sql --env-file skills/supabase/env/<project>-<env>.env "<SQL>"
 
 # Examples
 scripts/supabase.sh sql "SELECT COUNT(*) FROM users"
@@ -53,7 +52,7 @@ scripts/supabase.sh sql "DELETE FROM sessions WHERE expires_at < now()"
 ```bash
 scripts/supabase.sh sql-file <path>
 scripts/supabase.sh sql-file --project <project> --env <name> <path>
-scripts/supabase.sh sql-file --env-file <path-to-env> <path>
+scripts/supabase.sh sql-file --env-file skills/supabase/env/<project>-<env>.env <path>
 
 # Example
 scripts/supabase.sh sql-file ./migrations/001_init.sql

@@ -16,38 +16,27 @@ Because it uses management API access, treat it like admin-level database access
 
 ## Setup
 
-You can either export credentials directly or provide them through env files.
-
-Preferred pattern:
-
-- Store env files in `skills/supabase/env`
-- Use `<project>-<env>.env` names, for example:
-  - `skills/supabase/env/my-project-dev.env`
-  - `skills/supabase/env/my-project-prod.env`
-
-Env file format (required variable names):
+Copy the template and fill in your credentials:
 
 ```bash
-SUPABASE_URL="https://your-project-ref.supabase.co"
-SUPABASE_ACCESS_TOKEN="sbp_your_management_api_token"
+cp skills/supabase/env/example.env.template skills/supabase/env/my-project-dev.env
+$EDITOR skills/supabase/env/my-project-dev.env
 ```
 
-Example env file:
+The filename must follow `<project>-<env>.env`. Examples:
+
+- `skills/supabase/env/my-project-dev.env`
+- `skills/supabase/env/my-project-prod.env`
+
+Required variables (also documented inline in the template):
 
 ```bash
-mkdir -p skills/supabase/env
-cat > skills/supabase/env/my-project-dev.env <<'EOF'
-SUPABASE_URL="https://your-project-ref.supabase.co"
-SUPABASE_ACCESS_TOKEN="sbp_your_management_api_token"
-EOF
-cp skills/supabase/env/my-project-dev.env skills/supabase/env/my-project-prod.env
+SUPABASE_URL="https://<project-ref>.supabase.co"
+SUPABASE_ACCESS_TOKEN="sbp_<management_api_token>"
 ```
 
-If your file is not inside `skills/supabase/env/<project>-<env>.env` (for example `skills/supabase/my-project-dev.env`), use `--env-file`:
-
-```bash
-skills/supabase/scripts/supabase.sh sql --env-file skills/supabase/my-project-dev.env "SELECT 1"
-```
+Everything in `skills/supabase/env/` except `example.env.template` is gitignored.
+You can also export `SUPABASE_URL` and `SUPABASE_ACCESS_TOKEN` directly to bypass env files.
 
 Env resolution order:
 
@@ -70,7 +59,6 @@ Run raw SQL:
 skills/supabase/scripts/supabase.sh sql "SELECT * FROM users LIMIT 5"
 skills/supabase/scripts/supabase.sh sql --project my-project --env dev "SELECT * FROM users LIMIT 5"
 skills/supabase/scripts/supabase.sh sql --project my-project --env prod "SELECT * FROM users LIMIT 5"
-skills/supabase/scripts/supabase.sh sql --env-file skills/supabase/env/my-project-dev.env "SELECT COUNT(*) FROM users"
 ```
 
 Run SQL from a file:
@@ -78,7 +66,6 @@ Run SQL from a file:
 ```bash
 skills/supabase/scripts/supabase.sh sql-file ./migrations/001_init.sql
 skills/supabase/scripts/supabase.sh sql-file --project my-project --env dev ./migrations/001_init.sql
-skills/supabase/scripts/supabase.sh sql-file --env-file skills/supabase/env/my-project-prod.env ./migrations/001_init.sql
 ```
 
 ## Common Uses
