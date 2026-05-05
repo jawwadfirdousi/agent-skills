@@ -256,10 +256,8 @@ parse_shared_options() {
 }
 
 # Run raw SQL via Supabase management API (returns results)
-cmd_sql() {
-    parse_shared_options "$@"
-
-    local sql="${REMAINING_ARGS[*]-}"
+execute_sql() {
+    local sql="$1"
     if [[ -z "$sql" ]]; then
         echo "Error: SQL query required" >&2
         exit 1
@@ -277,6 +275,14 @@ cmd_sql() {
         -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
         -H "Content-Type: application/json" \
         -d "$payload" | jq .
+}
+
+# Run raw SQL via Supabase management API (returns results)
+cmd_sql() {
+    parse_shared_options "$@"
+
+    local sql="${REMAINING_ARGS[*]-}"
+    execute_sql "$sql"
 }
 
 # Run raw SQL from file via Supabase management API
@@ -301,7 +307,7 @@ cmd_sql_file() {
         exit 1
     fi
 
-    cmd_sql "$sql"
+    execute_sql "$sql"
 }
 
 # Main
